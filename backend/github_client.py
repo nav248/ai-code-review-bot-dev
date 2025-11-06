@@ -4,9 +4,9 @@ import asyncio
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 if not GITHUB_TOKEN:
-    raise ValueError("⚠️ GITHUB_TOKEN not found. Please set it in your environment or in GitHub Secrets.")
+    raise ValueError("⚠️ GITHUB_TOKEN not found. Set it in GitHub Secrets.")
 
-# Read PR number and repo from environment (set by workflow)
+# Read PR number and repo from environment
 PR_NUMBER = int(os.getenv("PR_NUMBER"))
 REPO_FULL = os.getenv("REPO")  # format: "owner/repo"
 OWNER, REPO = REPO_FULL.split("/")
@@ -37,7 +37,6 @@ async def get_changed_files(owner: str, repo: str, pr_number: int):
 
 # Mock AI review function
 def ai_review_patch(file_patch):
-    # For now, just return a dummy review
     return f"AI Review: Looks good! (Patch length: {len(file_patch)} characters)"
 
 async def post_pr_comment(owner: str, repo: str, pr_number: int, body: str):
@@ -51,7 +50,6 @@ async def main():
     files = await get_changed_files(OWNER, REPO, PR_NUMBER)
     print("Changed files:", files)
 
-    # Generate AI review for each file
     comments = []
     for f in files:
         if f["patch"]:
