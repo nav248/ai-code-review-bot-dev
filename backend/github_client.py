@@ -1,12 +1,16 @@
 import os
 import httpx
 import asyncio
+import openai
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-if not GITHUB_TOKEN:
-    raise ValueError("⚠️ GITHUB_TOKEN not found. Set it in GitHub Secrets.")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not GITHUB_TOKEN or not OPENAI_API_KEY:
+    raise ValueError("⚠️ GITHUB_TOKEN or OPENAI_API_KEY not found in environment variables.")
 
-# Read PR number and repo from environment
+openai.api_key = OPENAI_API_KEY
+
+# Read PR number and repo from environment (set by workflow)
 PR_NUMBER = int(os.getenv("PR_NUMBER"))
 REPO_FULL = os.getenv("REPO")  # format: "owner/repo"
 OWNER, REPO = REPO_FULL.split("/")
@@ -35,9 +39,20 @@ async def get_changed_files(owner: str, repo: str, pr_number: int):
         })
     return files
 
-# Mock AI review function
-def ai_review_patch(file_patch):
-    return f"AI Review: Looks good! (Patch length: {len(file_patch)} characters)"
+async def ai_review_patch(file_patch):
+    """Call OpenAI GPT to generate a code review"""
+    if not file_patch.strip():
+        return "No changes to review."
+
+    prompt = f"Please review the following code changes and provide constructive feedback:\n\n{file_patch}"
+    
+    response = await openai.ChatCompletion.acreate(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=300
+    )
+    review = response.choices[0].message.content
+    return review
 
 async def post_pr_comment(owner: str, repo: str, pr_number: int, body: str):
     url = f"https://api.github.com/repos/{owner}/{repo}/issues/{pr_number}/comments"
@@ -53,7 +68,8 @@ async def main():
     comments = []
     for f in files:
         if f["patch"]:
-            comments.append(f"**{f['filename']}**:\n{ai_review_patch(f['patch'])}")
+            review = await ai_review_patch(f["patch"])
+            comments.append(f"**{f['filename']}**:\n{review}")
         else:
             comments.append(f"**{f['filename']}**:\nNo patch available to review.")
 
