@@ -1,6 +1,9 @@
-# backend/app.py
+from fastapi import FastAPI
+from dotenv import load_dotenv
+import os
+from backend.github_client import get_changed_files
 
-from fastapi import FastAPI, Request
+load_dotenv()
 
 app = FastAPI()
 
@@ -8,7 +11,7 @@ app = FastAPI()
 def root():
     return {"message": "AI Code Review Bot is running!"}
 
-@app.post("/review")
-async def review(request: Request):
-    data = await request.json()
-    return {"status": "received", "data": data}
+@app.get("/test-pr")
+async def test_pr():
+    files = await get_changed_files("nav248", "ai-code-review-bot-dev", 1)
+    return files
