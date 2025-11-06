@@ -1,9 +1,11 @@
 name: AI PR Review
 
+# Give workflow permissions to read/write contents and PRs
 permissions:
   contents: write        # To fetch changed files
   pull-requests: write   # To post comments
 
+# Trigger workflow on PR events
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -13,23 +15,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout PR code
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2️⃣ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12"
 
+      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install httpx python-dotenv
+          pip install httpx python-dotenv openai
 
+      # 4️⃣ Run the GitHub client script
       - name: Run AI PR Review
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      # Provided automatically by GitHub
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # Add this secret in your repo settings
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
+          REPO: ${{ github.repository }}                 # Format: "owner/repo"
         run: python backend/github_client.py
